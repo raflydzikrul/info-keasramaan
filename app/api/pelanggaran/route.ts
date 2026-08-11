@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import supabase from '@/lib/supabase';
+import { isKedisiplinanAuthed } from '@/lib/kedisiplinan-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  if (!isKedisiplinanAuthed()) {
+    return NextResponse.json({ error: 'Tidak memiliki akses. Masukkan password kedisiplinan terlebih dahulu.' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const tingkat = searchParams.get('tingkat');
   const kelasId = searchParams.get('kelas_id');
@@ -35,6 +40,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  if (!isKedisiplinanAuthed()) {
+    return NextResponse.json({ error: 'Tidak memiliki akses. Masukkan password kedisiplinan terlebih dahulu.' }, { status: 401 });
+  }
+
   const body = await req.json();
   const { siswa_id, kategori_id, tanggal, keterangan, petugas } = body;
   if (!siswa_id || !kategori_id || !tanggal) {
