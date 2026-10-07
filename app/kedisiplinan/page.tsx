@@ -58,6 +58,15 @@ export default function KedisiplinanPage() {
   useEffect(() => { load(); }, [tingkat, kelasId, modePeriode, bulan, tanggal]);
   useRefetchOnFocus(load);
 
+  const downloadLaporan = () => {
+    const params = new URLSearchParams();
+    if (tingkat) params.set('tingkat', tingkat);
+    if (kelasId) params.set('kelas_id', kelasId);
+    if (modePeriode === 'harian') params.set('tanggal', tanggal);
+    else params.set('bulan', bulan);
+    window.location.href = `/api/pelanggaran/laporan/pdf?${params}`;
+  };
+
   const remove = async (id: number) => {
     if (!confirm('Hapus catatan pelanggaran ini?')) return;
     setError('');
@@ -80,7 +89,12 @@ export default function KedisiplinanPage() {
       <PageHeader
         title="Daftar Pelanggaran"
         description="Dashboard rekap pelanggaran santri dari kategori ringan hingga berat"
-        action={<Link href="/kedisiplinan/input"><Button>+ Input Pelanggaran</Button></Link>}
+        action={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={downloadLaporan} disabled={list.length === 0}>Download Laporan</Button>
+            <Link href="/kedisiplinan/input"><Button>+ Input Pelanggaran</Button></Link>
+          </div>
+        }
       />
 
       <p className="text-xs text-emerald-900/50 mb-2">
@@ -174,7 +188,8 @@ export default function KedisiplinanPage() {
                   <td className="px-5 py-3 text-emerald-900/70">{p.nama_kategori}</td>
                   <td className="px-5 py-3"><Badge tingkat={p.tingkat} /></td>
                   <td className="px-5 py-3 font-medium text-emerald-900/80">{p.poin} pt</td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="px-5 py-3 text-right space-x-2">
+                    <Link href={`/kedisiplinan/input?id=${p.id}`} className="focus-ring text-emerald-900 hover:text-gold-600 text-xs font-medium">Edit</Link>
                     <button onClick={() => remove(p.id)} className="focus-ring text-red-600 hover:text-red-700 text-xs font-medium">Hapus</button>
                   </td>
                 </tr>

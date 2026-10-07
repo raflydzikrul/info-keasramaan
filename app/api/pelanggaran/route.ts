@@ -65,3 +65,68 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ id: data.id }, { status: 201 });
 }
+
+export async function PUT(req: Request) {
+  if (!isKedisiplinanAuthed()) {
+    return NextResponse.json(
+      {
+        error:
+          "Tidak memiliki akses. Masukkan password kedisiplinan terlebih dahulu.",
+      },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const body = await req.json();
+
+    const { id, nama, tingkat, poin } = body;
+
+    if (!id || !nama?.trim() || !tingkat || !poin) {
+      return NextResponse.json(
+        { error: "Data tidak lengkap" },
+        { status: 400 },
+      );
+    }
+
+    if (!["Ringan", "Sedang", "Berat", "Sangat Berat"].includes(tingkat)) {
+      return NextResponse.json(
+        { error: "Tingkat pelanggaran tidak valid" },
+        { status: 400 },
+      );
+    }
+
+    if (Number(poin) < 1) {
+      return NextResponse.json(
+        { error: "Poin harus minimal 1" },
+        { status: 400 },
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("kategori_pelanggaran")
+      .update({
+        nama: nama.trim(),
+        tingkat,
+        poin: Number(poin),
+      })
+      .eq("id", id)
+      .select("id, nama, tingkat, poin")
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { error: "Kategori tidak ditemukan" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+  }
+}

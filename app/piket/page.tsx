@@ -61,6 +61,15 @@ export default function JurnalPiketPage() {
   useEffect(() => { load(); }, [modePeriode, bulan, tanggal, shift, status]);
   useRefetchOnFocus(load);
 
+  const downloadLaporan = () => {
+    const params = new URLSearchParams();
+    if (modePeriode === 'harian') params.set('tanggal', tanggal);
+    else params.set('bulan', bulan);
+    if (shift) params.set('shift', shift);
+    if (status) params.set('status', status);
+    window.location.href = `/api/piket/laporan/pdf?${params}`;
+  };
+
   const hapus = async (id: number) => {
     if (!confirm('Hapus catatan jurnal piket ini?')) return;
     setError('');
@@ -79,7 +88,12 @@ export default function JurnalPiketPage() {
       <PageHeader
         title="Jurnal Piket Asrama"
         description="Catatan harian petugas piket: kegiatan, kondisi asrama, kendala, dan tindak lanjutnya"
-        action={<Link href="/piket/input"><Button>+ Tulis Jurnal</Button></Link>}
+        action={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={downloadLaporan} disabled={list.length === 0}>Download Laporan</Button>
+            <Link href="/piket/input"><Button>+ Tulis Jurnal</Button></Link>
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
