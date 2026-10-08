@@ -427,17 +427,9 @@ export default function AbsensiPage() {
             Kelas
           </label>
 
-          <Select
-            value={kelasId}
-            onChange={(e) =>
-              setKelasId(e.target.value)
-            }
-          >
+          <Select value={kelasId} onChange={(e) => setKelasId(e.target.value)}>
             {kelasList.map((k) => (
-              <option
-                key={k.id}
-                value={k.id}
-              >
+              <option key={k.id} value={k.id}>
                 {k.nama}
               </option>
             ))}
@@ -452,9 +444,7 @@ export default function AbsensiPage() {
           <input
             type="date"
             value={tanggal}
-            onChange={(e) =>
-              setTanggal(e.target.value)
-            }
+            onChange={(e) => setTanggal(e.target.value)}
             className="focus-ring w-full px-3.5 py-2.5 rounded-lg border border-sand-200 bg-white text-sm"
           />
         </div>
@@ -468,61 +458,49 @@ export default function AbsensiPage() {
         </Button>
 
         {adaPerubahan && (
-          <Button
-            variant="ghost"
-            onClick={batalkanPerubahan}
-          >
+          <Button variant="ghost" onClick={batalkanPerubahan}>
             Batalkan Perubahan
           </Button>
         )}
 
-        <Button
-          onClick={simpan}
-          disabled={
-            saving ||
-            siswa.length === 0
-          }
-        >
+        <Button onClick={simpan} disabled={saving || siswa.length === 0}>
           {saving
-            ? 'Menyimpan...'
+            ? "Menyimpan..."
             : sudahAdaData
-            ? 'Simpan Perubahan'
-            : 'Simpan Absensi'}
+              ? "Simpan Perubahan"
+              : "Simpan Absensi"}
         </Button>
       </Card>
 
-      {!loadingGrid &&
-        siswa.length > 0 && (
-          <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
-            {sudahAdaData ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium">
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
+      {!loadingGrid && siswa.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+          {sudahAdaData ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+              >
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              Sudah ada {jumlahTersimpan} catatan tersimpan — mode edit
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-sand-100 text-emerald-900/60 text-xs font-medium">
+              Belum ada absensi tersimpan untuk tanggal & jenis ini
+            </span>
+          )}
 
-                Sudah ada {jumlahTersimpan}{' '}
-                catatan tersimpan — mode edit
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-sand-100 text-emerald-900/60 text-xs font-medium">
-                Belum ada absensi tersimpan untuk tanggal & jenis ini
-              </span>
-            )}
-
-            {adaPerubahan && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-gold-100 text-gold-600 text-xs font-medium">
-                Ada perubahan yang belum disimpan
-              </span>
-            )}
-          </div>
-        )}
+          {adaPerubahan && (
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-gold-100 text-gold-600 text-xs font-medium">
+              Ada perubahan yang belum disimpan
+            </span>
+          )}
+        </div>
+      )}
 
       {savedMsg && (
         <div className="mb-4 text-sm text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-lg px-4 py-2.5">
@@ -537,30 +515,24 @@ export default function AbsensiPage() {
       )}
 
       <div className="flex gap-1 mb-4 bg-sand-100 p-1 rounded-lg w-fit">
-        {(
-          [
-            'Wajib',
-            'Sunnah',
-            'Kegiatan'
-          ] as const
-        ).map((t) => (
+        {(["Wajib", "Sunnah", "Kegiatan"] as const).map((t) => (
           <button
             key={t}
             onClick={() => {
               setKategoriTab(t);
-              setSavedMsg('');
+              setSavedMsg("");
             }}
             className={`focus-ring px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               kategoriTab === t
-                ? 'bg-white text-emerald-950 shadow-sm'
-                : 'text-emerald-900/60 hover:text-emerald-900'
+                ? "bg-white text-emerald-950 shadow-sm"
+                : "text-emerald-900/60 hover:text-emerald-900"
             }`}
           >
-            {t === 'Wajib'
-              ? 'Sholat Wajib'
-              : t === 'Sunnah'
-              ? 'Sholat Sunnah'
-              : 'Kegiatan Lain'}
+            {t === "Wajib"
+              ? "Sholat Wajib"
+              : t === "Sunnah"
+                ? "Sholat Sunnah"
+                : "Kegiatan Lain"}
           </button>
         ))}
       </div>
@@ -576,10 +548,19 @@ export default function AbsensiPage() {
             description="Tambahkan santri terlebih dahulu di menu Data Santri."
           />
         ) : (
-          <table className="w-full text-sm min-w-[640px]">
+          <table className="w-full text-sm min-w-max">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-emerald-900/50 border-b border-sand-200">
-                <th className="px-5 py-3 sticky left-0 bg-white">
+                <th
+                  className="sticky left-0 z-20
+                      w-[125px] min-w-[125px]
+                      sm:w-[200px] sm:min-w-[200px]
+                      px-3 sm:px-5 py-3
+                      bg-white
+                      border-r border-sand-200
+                      shadow-[2px_0_4px_rgba(0,0,0,0.04)]
+                      whitespace-nowrap"
+                >
                   Nama Santri
                 </th>
 
@@ -600,60 +581,56 @@ export default function AbsensiPage() {
                   key={s.id}
                   className="border-b border-sand-100 last:border-0 hover:bg-sand-50"
                 >
-                  <td className="px-5 py-2.5 font-medium text-emerald-950 sticky left-0 bg-white whitespace-nowrap">
-                    {s.nama}
+                  <td
+                    className="
+                        sticky left-0 z-10
+                        w-[125px] min-w-[125px]
+                        sm:w-[200px] sm:min-w-[200px]
+                        px-3 sm:px-5 py-2.5
+                        font-medium text-emerald-950
+                        bg-white
+                        border-r border-sand-200
+                        shadow-[2px_0_4px_rgba(0,0,0,0.04)]" >
+                    <div className="truncate" title={s.nama}>
+                      {s.nama}
+                    </div>
                   </td>
 
                   {jenisTampil.map((j) => {
                     const key = `${s.id}-${j.id}`;
 
-                    const current =
-                      grid[key] || '';
+                    const current = grid[key] || "";
 
                     const berubah =
-                      (grid[key] || '') !==
-                      (gridTersimpan[key] || '');
+                      (grid[key] || "") !== (gridTersimpan[key] || "");
 
                     return (
                       <td
                         key={j.id}
                         className={`px-3 py-2 text-center ${
-                          berubah
-                            ? 'bg-gold-100/40'
-                            : ''
+                          berubah ? "bg-gold-100/40" : ""
                         }`}
                       >
                         <div className="flex justify-center gap-1">
-                          {STATUS_OPTIONS.map(
-                            (st) => (
-                              <button
-                                key={st}
-                                type="button"
-                                title={`${st}${
-                                  current === st
-                                    ? ' (klik lagi untuk batalkan)'
-                                    : ''
-                                }`}
-                                onClick={() =>
-                                  setStatus(
-                                    s.id,
-                                    j.id,
-                                    st
-                                  )
-                                }
-                                className={`focus-ring w-6 h-6 rounded-md text-[10px] font-bold border transition-colors ${
-                                  current === st
-                                    ? STATUS_COLOR[
-                                        st
-                                      ] +
-                                      ' border-transparent'
-                                    : 'bg-white border-sand-200 text-emerald-900/30 hover:border-emerald-300'
-                                }`}
-                              >
-                                {st[0]}
-                              </button>
-                            )
-                          )}
+                          {STATUS_OPTIONS.map((st) => (
+                            <button
+                              key={st}
+                              type="button"
+                              title={`${st}${
+                                current === st
+                                  ? " (klik lagi untuk batalkan)"
+                                  : ""
+                              }`}
+                              onClick={() => setStatus(s.id, j.id, st)}
+                              className={`focus-ring w-6 h-6 rounded-md text-[10px] font-bold border transition-colors ${
+                                current === st
+                                  ? STATUS_COLOR[st] + " border-transparent"
+                                  : "bg-white border-sand-200 text-emerald-900/30 hover:border-emerald-300"
+                              }`}
+                            >
+                              {st[0]}
+                            </button>
+                          ))}
                         </div>
                       </td>
                     );
@@ -666,10 +643,9 @@ export default function AbsensiPage() {
       </Card>
 
       <p className="text-xs text-emerald-900/40 mt-2">
-        H = Hadir · T = Terlambat · A = Alpa · I = Izin · S = Sakit.
-        Klik tombol untuk menandai status (klik tombol yang sama lagi
-        untuk membatalkan tanda). Sel berlatar kuning = ada perubahan
-        yang belum disimpan.
+        H = Hadir · T = Terlambat · A = Alpa · I = Izin · S = Sakit. Klik tombol
+        untuk menandai status (klik tombol yang sama lagi untuk membatalkan
+        tanda). Sel berlatar kuning = ada perubahan yang belum disimpan.
       </p>
     </div>
   );

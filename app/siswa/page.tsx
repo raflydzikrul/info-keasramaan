@@ -219,7 +219,7 @@ export default function SiswaPage() {
                     <th className="px-5 py-3">Nama</th>
                     <th className="px-5 py-3">Kelas</th>
                     <th className="px-5 py-3">JK</th>
-                    <th className="px-5 py-3">Poin Pelanggaran</th>
+                    {/* <th className="px-5 py-3">Poin Pelanggaran</th> */}
                     <th className="px-5 py-3 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -230,11 +230,11 @@ export default function SiswaPage() {
                       <td className="px-5 py-3 font-medium text-emerald-950">{s.nama}</td>
                       <td className="px-5 py-3 text-emerald-900/70">{s.nama_kelas || '-'}</td>
                       <td className="px-5 py-3 text-emerald-900/70">{s.jk}</td>
-                      <td className="px-5 py-3">
+                      {/* <td className="px-5 py-3">
                         <span className={s.total_poin_pelanggaran > 50 ? 'text-red-600 font-medium' : 'text-emerald-900/70'}>
                           {s.total_poin_pelanggaran} pt
                         </span>
-                      </td>
+                      </td> */}
                       <td className="px-5 py-3 text-right space-x-2">
                         <button onClick={() => edit(s)} className="focus-ring text-emerald-900 hover:text-gold-600 text-xs font-medium">Edit</button>
                         <button onClick={() => remove(s.id)} className="focus-ring text-red-600 hover:text-red-700 text-xs font-medium">Hapus</button>

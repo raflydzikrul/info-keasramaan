@@ -3,6 +3,7 @@ import PDFDocument from 'pdfkit';
 import supabase from '@/lib/supabase';
 import { isKedisiplinanAuthed } from '@/lib/kedisiplinan-auth';
 import { awalBulanBerikutnya } from '@/lib/tanggal';
+import { gambarKop, gambarTabel, gambarRingkasan, tambahFooterSemuaHalaman } from '@/lib/pdf-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,6 @@ export async function GET(req: Request) {
     petugas: p.petugas || '-'
   }));
 
-  // Nama kelas untuk judul laporan (kalau difilter per kelas)
   let namaKelas = 'Semua Kelas';
   if (kelasId) {
     const { data: k } = await supabase.from('kelas').select('nama').eq('id', kelasId).maybeSingle();
@@ -51,69 +51,49 @@ export async function GET(req: Request) {
   const periodeLabel = tanggal ? `Tanggal ${tanggal}` : bulan ? `Bulan ${bulan}` : 'Seluruh Periode';
   const tingkatLabel = tingkat || 'Semua Tingkat';
 
-  const doc = new PDFDocument({ size: 'A4', margin: 40 });
+  const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
   const chunks: Buffer[] = [];
   doc.on('data', (chunk) => chunks.push(chunk));
 
   const pdfBuffer: Buffer = await new Promise((resolve) => {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-    doc.fontSize(16).font('Helvetica-Bold').text('Laporan Pelanggaran Santri', { align: 'center' });
-    doc.moveDown(1);
+    let y = gambarKop(doc, 'Laporan Pelanggaran Santri', null, [
+      { label: 'Kelas', nilai: namaKelas },
+      { label: 'Tingkat', nilai: tingkatLabel },
+      { label: 'Periode', nilai: periodeLabel }
+    ]);
 
-    doc.fontSize(10).font('Helvetica');
-    doc.text(`Kelas      : ${namaKelas}`);
-    doc.text(`Tingkat    : ${tingkatLabel}`);
-    doc.text(`Periode    : ${periodeLabel}`);
-    doc.text(`Dicetak    : ${new Date().toLocaleString('id-ID')}`);
-    doc.moveDown(1);
-
-    const startX = 40;
-    let y = doc.y;
-    const colWidths = [22, 55, 115, 70, 110, 60, 45]; // No, Tanggal, Nama, Kelas, Kategori, Tingkat, Poin
-    const headers = ['No', 'Tanggal', 'Nama Santri', 'Kelas', 'Kategori', 'Tingkat', 'Poin'];
-
-    const drawRow = (values: string[], isHeader = false) => {
-      let x = startX;
-      doc.font(isHeader ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5);
-      values.forEach((val, i) => {
-        doc.text(val, x, y, { width: colWidths[i], align: i >= 6 ? 'right' : 'left' });
-        x += colWidths[i];
-      });
-      y += 18;
-    };
-
-    drawRow(headers, true);
-    doc.moveTo(startX, y).lineTo(startX + colWidths.reduce((a, b) => a + b, 0), y).strokeColor('#999').stroke();
-    y += 4;
-
-    if (rows.length === 0) {
-      doc.font('Helvetica').fontSize(10).text('Tidak ada data pelanggaran pada periode & filter ini.', startX, y);
-      y += 20;
-    }
-
-    rows.forEach((r, i) => {
-      if (y > 760) { doc.addPage(); y = 40; }
-      drawRow([
+    y = gambarTabel(
+      doc, y,
+      [
+        { label: 'No', lebar: 22, align: 'center' },
+        { label: 'Tanggal', lebar: 58 },
+        { label: 'Nama Santri', lebar: 110 },
+        { label: 'Kelas', lebar: 35 },
+        { label: 'Kategori', lebar: 175 },
+        { label: 'Tingkat', lebar: 60 },
+        { label: 'Poin', lebar: 55, align: 'center' }
+      ],
+      rows.map((r, i) => [
         String(i + 1), r.tanggal, r.nama_siswa, r.nama_kelas,
         r.nama_kategori, r.tingkat, String(r.poin)
-      ]);
-    });
+      ]),
+      { pesanKosong: 'Tidak ada data pelanggaran pada periode & filter ini.' }
+    );
 
-    // Ringkasan
     const totalKasus = rows.length;
     const totalPoin = rows.reduce((a, r) => a + r.poin, 0);
     const perTingkat = { Ringan: 0, Sedang: 0, Berat: 0 } as Record<string, number>;
     rows.forEach((r) => { if (perTingkat[r.tingkat] !== undefined) perTingkat[r.tingkat]++; });
 
-    y += 10;
-    doc.moveTo(startX, y).lineTo(startX + colWidths.reduce((a, b) => a + b, 0), y).strokeColor('#999').stroke();
-    y += 10;
-    doc.font('Helvetica-Bold').fontSize(10).text(
-      `Total: ${totalKasus} kasus · ${totalPoin} poin  (Ringan: ${perTingkat.Ringan}, Sedang: ${perTingkat.Sedang}, Berat: ${perTingkat.Berat})`,
-      startX, y
-    );
+    gambarRingkasan(doc, y, [
+      { label: 'Total Kasus', nilai: String(totalKasus) },
+      { label: 'Total Poin', nilai: String(totalPoin) },
+      { label: 'Ringan / Sedang / Berat', nilai: `${perTingkat.Ringan} / ${perTingkat.Sedang} / ${perTingkat.Berat}` }
+    ]);
 
+    tambahFooterSemuaHalaman(doc);
     doc.end();
   });
 

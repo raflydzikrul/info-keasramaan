@@ -3,6 +3,7 @@ import PDFDocument from 'pdfkit';
 import supabase from '@/lib/supabase';
 import { isAreaAuthed } from '@/lib/area-auth';
 import { awalBulanBerikutnya } from '@/lib/tanggal';
+import { gambarKop, gambarTabel, gambarRingkasan, gambarJudulBagian, tambahFooterSemuaHalaman, WARNA, MARGIN, LEBAR_KONTEN, BATAS_BAWAH } from '@/lib/pdf-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,94 +36,83 @@ export async function GET(req: Request) {
   const rows = data || [];
   const periodeLabel = tanggal ? `Tanggal ${tanggal}` : bulan ? `Bulan ${bulan}` : 'Seluruh Periode';
 
-  const doc = new PDFDocument({ size: 'A4', margin: 40 });
+  const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
   const chunks: Buffer[] = [];
   doc.on('data', (chunk) => chunks.push(chunk));
 
   const pdfBuffer: Buffer = await new Promise((resolve) => {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-    doc.fontSize(16).font('Helvetica-Bold').text('Laporan Jurnal Piket Asrama', { align: 'center' });
-    doc.moveDown(1);
+    let y = gambarKop(doc, 'Laporan Jurnal Piket Asrama', null, [
+      { label: 'Periode', nilai: periodeLabel },
+      { label: 'Shift', nilai: shift || 'Semua Shift' },
+      { label: 'Status', nilai: status || 'Semua Status' }
+    ]);
 
-    doc.fontSize(10).font('Helvetica');
-    doc.text(`Periode    : ${periodeLabel}`);
-    doc.text(`Shift      : ${shift || 'Semua Shift'}`);
-    doc.text(`Status     : ${status || 'Semua Status'}`);
-    doc.text(`Dicetak    : ${new Date().toLocaleString('id-ID')}`);
-    doc.moveDown(1);
-
-    // --- Tabel ringkasan ---
-    const startX = 40;
-    let y = doc.y;
-    const colWidths = [22, 55, 45, 95, 60, 95]; // No, Tanggal, Shift, Petugas, Hadir, Status
-    const headers = ['No', 'Tanggal', 'Shift', 'Petugas', 'Hadir', 'Status'];
-
-    const drawRow = (values: string[], isHeader = false) => {
-      let x = startX;
-      doc.font(isHeader ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5);
-      values.forEach((val, i) => {
-        doc.text(val, x, y, { width: colWidths[i], align: i === 4 ? 'right' : 'left' });
-        x += colWidths[i];
-      });
-      y += 18;
-    };
-
-    drawRow(headers, true);
-    doc.moveTo(startX, y).lineTo(startX + colWidths.reduce((a, b) => a + b, 0), y).strokeColor('#999').stroke();
-    y += 4;
-
-    if (rows.length === 0) {
-      doc.font('Helvetica').fontSize(10).text('Tidak ada data jurnal pada periode & filter ini.', startX, y);
-      y += 20;
-    }
-
-    rows.forEach((r: any, i: number) => {
-      if (y > 760) { doc.addPage(); y = 40; }
-      drawRow([
+    y = gambarTabel(
+      doc, y,
+      [
+        { label: 'No', lebar: 22, align: 'center' },
+        { label: 'Tanggal', lebar: 62 },
+        { label: 'Shift', lebar: 55 },
+        { label: 'Petugas', lebar: 150 },
+        { label: 'Hadir', lebar: 55, align: 'center' },
+        { label: 'Status', lebar: 171 }
+      ],
+      rows.map((r: any, i: number) => [
         String(i + 1), r.tanggal, r.shift, r.petugas,
         r.jumlah_santri_hadir === null ? '-' : String(r.jumlah_santri_hadir),
         r.status
-      ]);
-    });
+      ]),
+      { pesanKosong: 'Tidak ada data jurnal pada periode & filter ini.' }
+    );
 
     const jumlahPerluTindakLanjut = rows.filter((r: any) => r.status === 'Perlu Tindak Lanjut').length;
-    y += 10;
-    doc.moveTo(startX, y).lineTo(startX + colWidths.reduce((a, b) => a + b, 0), y).strokeColor('#999').stroke();
-    y += 10;
-    doc.font('Helvetica-Bold').fontSize(10).text(
-      `Total: ${rows.length} catatan · ${jumlahPerluTindakLanjut} perlu tindak lanjut`,
-      startX, y
-    );
-    y += 25;
+    y = gambarRingkasan(doc, y, [
+      { label: 'Total Catatan', nilai: String(rows.length) },
+      { label: 'Perlu Tindak Lanjut', nilai: String(jumlahPerluTindakLanjut) },
+      { label: 'Selesai', nilai: String(rows.length - jumlahPerluTindakLanjut) }
+    ]);
 
     // --- Detail lengkap untuk catatan yang Perlu Tindak Lanjut ---
     const perluTindakLanjut = rows.filter((r: any) => r.status === 'Perlu Tindak Lanjut');
     if (perluTindakLanjut.length > 0) {
-      if (y > 700) { doc.addPage(); y = 40; }
-      doc.font('Helvetica-Bold').fontSize(12).text('Detail Catatan yang Perlu Tindak Lanjut', startX, y);
-      y += 20;
+      y = gambarJudulBagian(doc, y, 'Detail Catatan yang Perlu Tindak Lanjut');
 
-      perluTindakLanjut.forEach((r: any) => {
-        if (y > 700) { doc.addPage(); y = 40; }
-        doc.font('Helvetica-Bold').fontSize(9.5).text(`${r.tanggal} · Shift ${r.shift} · ${r.petugas}`, startX, y);
-        y += 15;
-        doc.font('Helvetica').fontSize(9);
+      perluTindakLanjut.forEach((r: any, idx: number) => {
+        if (y > BATAS_BAWAH - 60) { doc.addPage(); y = MARGIN; }
+
+        // Kartu per-catatan dengan aksen merah di kiri (menandakan perlu perhatian)
+        const estimasiTinggi = 70; // disesuaikan ulang di bawah kalau teks panjang
+        doc.rect(MARGIN, y, 3, estimasiTinggi).fill(WARNA.merah);
+
+        doc.fillColor(WARNA.hijauTua).font('Helvetica-Bold').fontSize(9.5)
+          .text(`${r.tanggal}  ·  Shift ${r.shift}  ·  ${r.petugas}`, MARGIN + 12, y + 2, { width: LEBAR_KONTEN - 12 });
+        let yDetail = doc.y + 6;
+
+        doc.font('Helvetica').fontSize(8.8).fillColor('#374151');
         const tulisField = (label: string, isi: string | null) => {
           if (!isi) return;
-          const tinggi = doc.heightOfString(`${label}: ${isi}`, { width: 500 });
-          if (y + tinggi > 780) { doc.addPage(); y = 40; }
-          doc.text(`${label}: ${isi}`, startX, y, { width: 500 });
-          y += tinggi + 4;
+          const teks = `${label}: ${isi}`;
+          const tinggi = doc.heightOfString(teks, { width: LEBAR_KONTEN - 12 });
+          if (yDetail + tinggi > BATAS_BAWAH) { doc.addPage(); yDetail = MARGIN; }
+          doc.font('Helvetica-Bold').fontSize(8.8).fillColor(WARNA.teksSamar).text(`${label}:`, MARGIN + 12, yDetail, { continued: false });
+          doc.font('Helvetica').fontSize(8.8).fillColor('#374151').text(isi, MARGIN + 12, doc.y, { width: LEBAR_KONTEN - 12 });
+          yDetail = doc.y + 4;
         };
         tulisField('Kegiatan', r.kegiatan);
         tulisField('Kondisi Asrama', r.kondisi_asrama);
         tulisField('Kendala', r.kendala);
         tulisField('Tindak Lanjut', r.tindak_lanjut);
-        y += 10;
+
+        y = yDetail + 10;
+        if (idx < perluTindakLanjut.length - 1) {
+          doc.moveTo(MARGIN, y - 4).lineTo(MARGIN + LEBAR_KONTEN, y - 4).lineWidth(0.5).strokeColor(WARNA.garis).stroke();
+        }
       });
     }
 
+    tambahFooterSemuaHalaman(doc);
     doc.end();
   });
 
